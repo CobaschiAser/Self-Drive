@@ -14,7 +14,7 @@ const AdminDashboard = () => {
     const [selectedParking, setSelectedParking] = useState(null);
 
     const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: "AIzaSyCb-4jTxY5NLnRNdLs0UTylKMvUfXh5clU",
+        googleMapsApiKey: "",
     });
 
     useEffect(() => {

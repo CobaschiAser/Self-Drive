@@ -22,7 +22,7 @@ const ParkingList = ({ page }) => {
     const [selectedParking, setSelectedParking] = useState(null);
     const center = { lat: 47.164775, lng: 27.580579 };
     const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: "AIzaSyCb-4jTxY5NLnRNdLs0UTylKMvUfXh5clU",
+        googleMapsApiKey: "",
     });
     const togglePreviousPage = () => {
         window.location.href =  `/parking?page=${page-1}`;

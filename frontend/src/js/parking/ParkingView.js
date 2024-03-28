@@ -19,7 +19,7 @@ const ParkingView = ({ parkingId }) => {
     const [selectedParking, setSelectedParking] = useState(null);
     const center = { lat: 47.164775, lng: 27.580579 };
     const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: "AIzaSyCb-4jTxY5NLnRNdLs0UTylKMvUfXh5clU",
+        googleMapsApiKey: "",
     });
 
     const customMarkerIcon = {
