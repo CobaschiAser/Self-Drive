@@ -1,1 +1,1 @@
-# Self-Drive
+The project addresses the efficient sharing of autonomous electric vehicles for eco-friendly transportation. Users access the system via web, registering and authenticating before locating available vehicles through a live map. The application, primarily developed in Java using Spring Boot for the web, utilizes JPA with Hibernate for database communication.
