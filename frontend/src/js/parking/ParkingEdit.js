@@ -1,9 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import '../../css/EditForm.css';
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import AppFooter from "../AppFooter";
+import {jwtDecode} from "jwt-decode";
+import MyNavbar from "../MyNavbar";
 
 const EditParkingForm = ({ parkingId }) => {
+
+    const [jwt, setJwt] = useState(localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
+
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        if (jwt !== '' && jwt['isAdmin'] === '0') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+        if (jwt === '') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+    }, [jwt])
+
+
     const [parkingData, setParkingData] = useState({
         name: '',
         x: '',
@@ -16,7 +38,13 @@ const EditParkingForm = ({ parkingId }) => {
     const [successfullyEdited , setSuccessfullyEdited] = useState(false);
 
     useEffect(() => {
-        fetch(`/parking/byId/${parkingId}`)
+        fetch(`/parking/byId/${parkingId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
             .then((response) => response.json())
             .then((data) => {
                 // Selectively update the state based on fetched data
@@ -60,6 +88,7 @@ const EditParkingForm = ({ parkingId }) => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}`
                 },
                 body: JSON.stringify(parkingData),
             });
@@ -89,11 +118,17 @@ const EditParkingForm = ({ parkingId }) => {
         }
     };
 
+    if (error) {
+        return (
+            <div>Error..</div>
+        )
+    }
+
     return (
-        <div>
-            <AppNavbar/>
-            <Container className="mt-5 d-flex justify-content-center">
-                <Form className="register-form">
+        <div style={{display:"flex", flexDirection: "column", minHeight:"100vh"}}>
+            <MyNavbar/>
+            <Container className="mt-5 d-flex justify-content-center" style={{flex:1, marginBottom: '7vh'}}>
+                <Form className="register-form" style={{borderColor: 'black'}}>
                     {emptyField && <div className="text-center"><Form.Text className="text-danger" > Please fill empty fields</Form.Text></div>}
                     <br/>
                     <h2 className="mb-b text-center">Edit Parking Form</h2>
@@ -138,7 +173,7 @@ const EditParkingForm = ({ parkingId }) => {
                     </Form.Group>
                     <br/>
                     <div className="text-center">
-                        <Button variant="primary" type="button" onClick={handleSubmit}>
+                        <Button variant="secondary" type="button" onClick={handleSubmit} style={{borderColor: 'black', borderWidth: '2px'}}>
                             Edit Parking
                         </Button>
                         <br/>
@@ -147,6 +182,7 @@ const EditParkingForm = ({ parkingId }) => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

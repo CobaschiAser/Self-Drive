@@ -1,4 +1,4 @@
-package com.example.webjpademoapplicationsecondtry.helpers;
+package com.example.webjpademoapplicationsecondtry.utils;
 
 import com.example.webjpademoapplicationsecondtry.entity.Request;
 

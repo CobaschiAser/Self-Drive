@@ -1,7 +1,8 @@
 package com.example.webjpademoapplicationsecondtry.controller;
 
-import com.example.webjpademoapplicationsecondtry.helpers.InputDate;
+import com.example.webjpademoapplicationsecondtry.utils.InputDate;
 import com.example.webjpademoapplicationsecondtry.entity.Request;
+import com.example.webjpademoapplicationsecondtry.service.PreferenceService;
 import com.example.webjpademoapplicationsecondtry.service.RequestService;
 import com.example.webjpademoapplicationsecondtry.service.RideService;
 import com.example.webjpademoapplicationsecondtry.service.VehicleService;
@@ -27,10 +28,14 @@ public class RequestController {
     @Autowired
     private final VehicleService vehicleService;
 
-    public RequestController(RequestService requestService, RideService rideService, VehicleService vehicleService) {
+    @Autowired
+    private final PreferenceService preferenceService;
+
+    public RequestController(RequestService requestService, RideService rideService, VehicleService vehicleService, PreferenceService preferenceService) {
         this.requestService = requestService;
         this.rideService = rideService;
         this.vehicleService = vehicleService;
+        this.preferenceService = preferenceService;
     }
 
     @GetMapping
@@ -39,8 +44,8 @@ public class RequestController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Request> findRequestById(@PathVariable("id") Long id){
-        return requestService.findRequestById(id);
+    public ResponseEntity<Request> findRequestById(@RequestHeader(name = "Authorization") String token, @PathVariable("id") Long id){
+        return requestService.findRequestById(token, id);
     }
 
     @GetMapping("/by-date")
@@ -50,30 +55,31 @@ public class RequestController {
     }
 
     @PostMapping("/{uuid}")
-    public Request saveRequest(@RequestBody Request request,@PathVariable("uuid") UUID uuid){
-        return requestService.saveRequest(request, uuid, vehicleService);
+    public ResponseEntity<Request> saveRequest(@RequestHeader(name = "Authorization") String token, @RequestBody Request request,@PathVariable("uuid") UUID uuid){
+        return requestService.saveRequest(token, request, uuid, vehicleService, preferenceService);
     }
 
     @PostMapping("/{id}/start")
-    public void startRequest(@PathVariable("id") Long id){
-        requestService.startRequest(id);
+    public void startRequest(@RequestHeader(name = "authorization") String token, @PathVariable("id") Long id){
+        requestService.startRequest(token, id);
     }
 
     @PostMapping("{id}/finish")
-    public void finishRequest(@PathVariable("id") Long id){
+    public void finishRequest(@RequestHeader(name = "authorization") String token, @PathVariable("id") Long id){
 
-        requestService.finishRequest(id);
+        requestService.finishRequest(token, id);
         rideService.saveRide(id);
     }
 
     @PutMapping("/{id}")
-    public Request modifyRequest(@RequestBody Request request, @PathVariable("id") Long id){
-        return requestService.updateRequest(request, id, vehicleService);
+    public Request modifyRequest(@RequestHeader(name = "Authorization") String token, @RequestBody Request request, @PathVariable("id") Long id){
+        // System.out.println("Controller token " + token);
+        return requestService.updateRequest(token, request, id, vehicleService, preferenceService);
     }
 
     @DeleteMapping("/{id}")
     public void deleteRequestById(@PathVariable("id") Long id){
-        requestService.deleteRequestById(id);
+        requestService.deleteRequestById(id, preferenceService);
     }
 
 }

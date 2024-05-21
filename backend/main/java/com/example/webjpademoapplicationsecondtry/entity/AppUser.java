@@ -6,6 +6,7 @@ import com.example.webjpademoapplicationsecondtry.dtos.AppUserRegisterDto;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.sql.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -21,6 +22,9 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")
     private UUID id;
+
+    @Column(name = "admin")
+    private Integer isAdmin;
 
     @Column(name = "name")
     private String name;
@@ -50,6 +54,10 @@ public class AppUser {
     @Column(name = "verificated")
     private Boolean verificated = false;
 
+    @Temporal(TemporalType.DATE)
+    @Column(name = "registration-date")
+    private Date registrationDate;
+
     @OneToMany(mappedBy = "owner",cascade = CascadeType.ALL)
     @JsonManagedReference
     private Set<Request> requests = new HashSet<>();
@@ -62,6 +70,7 @@ public class AppUser {
 
     public AppUser(UUID id, String name, String email, String username, String password) {
         this.id = id;
+        this.isAdmin = 0;
         this.name = name;
         this.email = email;
         this.username = username;
@@ -69,6 +78,7 @@ public class AppUser {
     }
 
     public AppUser(String name, String email, String username, String password) {
+        this.isAdmin = 0;
         this.name = name;
         this.email = email;
         this.username = username;
@@ -76,6 +86,7 @@ public class AppUser {
     }
 
     public AppUser(AppUserRegisterDto appUserRegisterDto){
+        this.isAdmin = 0;
         this.name = appUserRegisterDto.getName();
         this.email = appUserRegisterDto.getEmail();
         this.username = appUserRegisterDto.getUsername();
@@ -187,4 +198,16 @@ public class AppUser {
     public String getPasswordCode() { return this.passwordCode;}
 
     public void setPasswordCode(String passwordCode) { this.passwordCode = passwordCode;}
+
+    public Date getRegistrationDate() {
+        return this.registrationDate;
+    }
+
+    public void setRegistrationDate(Date registrationDate) {
+        this.registrationDate = registrationDate;
+    }
+
+    public Integer getIsAdmin(){
+        return this.isAdmin;
+    }
  }

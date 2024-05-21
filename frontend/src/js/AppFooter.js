@@ -8,6 +8,7 @@ const Footer = () => {
                 <span className="text-muted">© 2024 -SelfDrive- All rights reserved.</span>
             </div>
         </footer>
+        //style={{ position: "fixed", left: 0, bottom: 0, width: "100%", backgroundColor: "gray", textAlign: "center", padding: "10px 0", color: "white"}}
     );
 };
 

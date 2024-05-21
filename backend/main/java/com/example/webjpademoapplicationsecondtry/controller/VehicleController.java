@@ -5,10 +5,12 @@ import com.example.webjpademoapplicationsecondtry.entity.Vehicle;
 import com.example.webjpademoapplicationsecondtry.service.ParkingService;
 import com.example.webjpademoapplicationsecondtry.service.VehicleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
@@ -26,31 +28,54 @@ public class VehicleController {
     }
 
     @GetMapping
-    public List<Vehicle> findAllVehicle(){
-        return vehicleService.findAllVehicle();
+    public ResponseEntity<List<Vehicle>> findAllVehicle(@RequestHeader(name = "Authorization") String token){
+        return vehicleService.findAllVehicle(token);
+    }
+
+
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Integer>> getVehicleStatistics(@RequestHeader(name = "Authorization") String token, @RequestParam  String criteria) {
+        return vehicleService.getVehicleStatistics(criteria, token);
+    }
+
+    @GetMapping("/can-be-added")
+    public ResponseEntity<List<Vehicle>> getVehiclesCanBeAdded(@RequestHeader(name = "Authorization") String token) {
+        return vehicleService.getVehiclesCanBeAdded(token);
+    }
+
+    @GetMapping("/can-be-removed")
+    public ResponseEntity<List<Vehicle>> getVehiclesCanBeRemoved(@RequestHeader(name = "Authorization") String token, @RequestParam String parkingId) {
+        Long id = Long.parseLong(parkingId);
+        return vehicleService.getVehiclesCanBeRemoved(token, id);
+    }
+
+    @GetMapping("/all-after-request")
+    public ResponseEntity<List<Vehicle>> getVehiclesAfterRequest(@RequestHeader(name = "Authorization") String token, @RequestParam String parkingId) {
+        Long id = Long.parseLong(parkingId);
+        return vehicleService.getVehiclesAfterRequest(token, id);
     }
 
     @GetMapping("/available-in-departure")
-    public List<Vehicle> availableVehicle(@RequestParam String departure, @RequestParam String date, @RequestParam Integer startHour, @RequestParam String vehicleType){
+    public ResponseEntity<List<Vehicle>> availableVehicle(@RequestHeader(name = "Authorization") String token, @RequestParam String departure, @RequestParam String date, @RequestParam Integer startHour, @RequestParam String vehicleType){
         Date convertedDate = Date.valueOf(date);
-        return vehicleService.willBeInDeparture(departure, convertedDate, startHour, vehicleType);
+        return vehicleService.willBeInDeparture(token, departure, convertedDate, startHour, vehicleType);
     }
 
     @GetMapping("/available-in-departure-update")
-    public List<Vehicle> availableVehicleUpdate(@RequestParam String departure, @RequestParam String date, @RequestParam Integer startHour,@RequestParam Long initialVehicleId, @RequestParam String vehicleType){
+    public ResponseEntity<List<Vehicle>> availableVehicleUpdate(@RequestHeader(name = "Authorization") String token, @RequestParam String departure, @RequestParam String date, @RequestParam Integer startHour,@RequestParam Long initialVehicleId, @RequestParam String vehicleType){
         Date convertedDate = Date.valueOf(date);
-        return vehicleService.willBeInDepartureUpdate(departure, convertedDate, startHour,initialVehicleId, vehicleType);
+        return vehicleService.willBeInDepartureUpdate(token, departure, convertedDate, startHour,initialVehicleId, vehicleType);
     }
 
     @GetMapping("/{id}")
-    public Vehicle findVehicleById(@PathVariable("id") Long id) {
+    public ResponseEntity<Vehicle> findVehicleById(@RequestHeader(name = "Authorization") String token, @PathVariable("id") Long id) {
 
-        return vehicleService.findVehicleById(id);
+        return vehicleService.findVehicleById(id, token);
     }
 
     @PostMapping
-    public Vehicle saveVehicle(@RequestBody Vehicle vehicle){
-        return vehicleService.saveVehicle(vehicle);
+    public ResponseEntity<Vehicle> saveVehicle(@RequestHeader(name = "Authorization") String token, @RequestBody Vehicle vehicle){
+        return vehicleService.saveVehicle(token, vehicle);
     }
 
     @PostMapping("/all")
@@ -61,13 +86,15 @@ public class VehicleController {
 
 
     @PutMapping("/{id}")
-    public Vehicle update(@RequestBody Vehicle vehicle, @PathVariable("id") Long id){
-        return vehicleService.updateVehicle(vehicle, id);
+    public ResponseEntity<Vehicle> update(@RequestHeader(name = "Authorization") String token, @RequestBody Vehicle vehicle, @PathVariable("id") Long id){
+        return vehicleService.updateVehicle(token, vehicle, id);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteVehicleById(@PathVariable("id") Long id){
-        vehicleService.deleteVehicleById(id, parkingService);
+    public ResponseEntity<String> deleteVehicleById(@RequestHeader(name = "Authorization") String token, @PathVariable("id") Long id){
+        return vehicleService.deleteVehicleById(id, token, parkingService);
     }
+
+
 
 }

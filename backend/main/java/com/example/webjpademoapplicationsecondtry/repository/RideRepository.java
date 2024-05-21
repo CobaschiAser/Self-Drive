@@ -15,4 +15,7 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
 
     @Query("SELECT r FROM Ride r WHERE r.date = :date")
     List<Ride> findRideByDate(@Param("date") Date date);
+
+    @Query("SELECT r FROM Ride r WHERE r.id = :id")
+    Ride findRideById(@Param("id") Long id);
 }

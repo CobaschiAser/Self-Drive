@@ -3,20 +3,27 @@ package com.example.webjpademoapplicationsecondtry.service.impementation;
 import com.example.webjpademoapplicationsecondtry.dtos.ParkingDto;
 import com.example.webjpademoapplicationsecondtry.entity.Parking;
 import com.example.webjpademoapplicationsecondtry.entity.ParkingFlux;
+import com.example.webjpademoapplicationsecondtry.entity.Request;
 import com.example.webjpademoapplicationsecondtry.entity.Vehicle;
 import com.example.webjpademoapplicationsecondtry.exception.AlreadyBusyException;
 import com.example.webjpademoapplicationsecondtry.exception.NotFoundException;
+import com.example.webjpademoapplicationsecondtry.service.VehicleService;
+import com.example.webjpademoapplicationsecondtry.utils.JwtUtil;
+import com.example.webjpademoapplicationsecondtry.utils.PercentageConverter;
+import com.example.webjpademoapplicationsecondtry.utils.PeriodConverter;
 import com.example.webjpademoapplicationsecondtry.repository.ParkingFluxRepository;
 import com.example.webjpademoapplicationsecondtry.repository.ParkingRepository;
+import com.example.webjpademoapplicationsecondtry.repository.RequestRepository;
 import com.example.webjpademoapplicationsecondtry.repository.VehicleRepository;
 import com.example.webjpademoapplicationsecondtry.service.ParkingService;
+import io.jsonwebtoken.Jwt;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestHeader;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Date;
+import java.util.*;
 
 
 @Service
@@ -27,12 +34,112 @@ public class ParkingServiceImpl implements ParkingService {
 
     private final VehicleRepository vehicleRepository;
 
+    private final RequestRepository requestRepository;
 
-    public ParkingServiceImpl(ParkingRepository parkingRepository, ParkingFluxRepository parkingFluxRepository, VehicleRepository vehicleRepository, VehicleRepository vehicleRepository1) {
+
+    public ParkingServiceImpl(ParkingRepository parkingRepository, ParkingFluxRepository parkingFluxRepository, VehicleRepository vehicleRepository, VehicleRepository vehicleRepository1, RequestRepository requestRepository) {
         this.parkingRepository = parkingRepository;
         this.parkingFluxRepository = parkingFluxRepository;
         this.vehicleRepository = vehicleRepository1;
+        this.requestRepository = requestRepository;
     }
+
+    @Override
+    public ResponseEntity<List<Long>> findParkingStatistics(String token, Integer all, Long id, String period){
+
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Date date = PeriodConverter.convertPeriodToDate(period);
+        if (all == 1) {
+            List<Request> requestList = requestRepository.findAll();
+            Long totalRequest = (long)requestList.size();
+            for (Request request: requestList) {
+                if (request.getDate().before(date)) {
+                    totalRequest --;
+                }
+            }
+            Long totalInput = (long)0;
+            Long totalOutput = (long)0;
+            List<ParkingFlux> parkingFluxList = parkingFluxRepository.findAll();
+            for (ParkingFlux parkingFlux : parkingFluxList) {
+                if (parkingFlux.getDate().after(date)) {
+                    totalInput += parkingFlux.getInput();
+                    totalOutput += parkingFlux.getOutput();
+                }
+            }
+            return new ResponseEntity<>(Arrays.asList(totalRequest, totalInput, totalOutput), HttpStatus.OK);
+        } else {
+            String parkingName = parkingRepository.findParkingById(id).getName();
+            List<Request> requestList = requestRepository.findRequestByParking(parkingName);
+            Long totalRequest = (long)requestList.size();
+            for (Request request: requestList) {
+                if (request.getDate().before(date)) {
+                    totalRequest --;
+                }
+            }
+            Long totalInput = (long)0;
+            Long totalOutput = (long)0;
+            List<ParkingFlux> parkingFluxList = parkingFluxRepository.findByParkingId(id);
+            for (ParkingFlux parkingFlux : parkingFluxList) {
+                if (parkingFlux.getDate().after(date)) {
+                    totalInput += parkingFlux.getInput();
+                    totalOutput += parkingFlux.getOutput();
+                }
+            }
+            return new ResponseEntity<>(Arrays.asList(totalRequest, totalInput, totalOutput), HttpStatus.OK);
+        }
+    }
+
+
+
+    @Override
+    public ResponseEntity<Map<Long, Long>> findParkingHierarchy(String token, String period) {
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Map<Long, Long> myMap = new HashMap<>();
+        List<Parking> parkings = parkingRepository.findAll();
+
+        final Integer NOT_ALL = 0;
+
+        Long sumAll = 0L;
+
+        for (Parking parking : parkings) {
+            List<Long> parkingStatistics = this.findParkingStatistics(token, NOT_ALL, parking.getId(), period).getBody();
+            if (parkingStatistics != null) {
+                Long output = parkingStatistics.get(parkingStatistics.size() - 1);
+                sumAll += output;
+                myMap.put(parking.getId(), output);
+            }
+        }
+
+        List<Vehicle> vehiclesCanBeMoved = vehicleRepository.findAll();
+        vehiclesCanBeMoved.removeIf(vehicle -> !requestRepository.findActiveRequestWithVehicle(vehicle.getId()).isEmpty());
+        Long nrVehiclesCanBeMoved = (long) vehiclesCanBeMoved.size();
+
+        for (Parking parking : parkings) {
+            Long output = myMap.get(parking.getId());
+            double percentage = PercentageConverter.getPercentage(sumAll, output);
+            Long newKey = PercentageConverter.getAmount(nrVehiclesCanBeMoved, percentage);
+            myMap.put(parking.getId(), newKey);
+        }
+
+        // Sort myMap by value
+        List<Map.Entry<Long, Long>> entryList = new ArrayList<>(myMap.entrySet());
+        entryList.sort(Map.Entry.comparingByValue());
+
+        // Create a new LinkedHashMap to preserve the sorted order
+        Map<Long, Long> sortedMap = new LinkedHashMap<>();
+        for (Map.Entry<Long, Long> entry : entryList) {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+
+        return new ResponseEntity<>(sortedMap, HttpStatus.OK);
+    }
+
 
 
     @Override
@@ -48,10 +155,15 @@ public class ParkingServiceImpl implements ParkingService {
     }
 
     @Override
-    public ResponseEntity<List<Parking>> findAllParking() {
-        if(!parkingRepository.findAll().isEmpty()){
+    public ResponseEntity<List<Parking>> findAllParking(String token) {
+
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        if (!parkingRepository.findAll().isEmpty()) {
             return new ResponseEntity<>(parkingRepository.findAll(), HttpStatus.OK);
-        }else {
+        } else {
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         }
     }
@@ -75,14 +187,21 @@ public class ParkingServiceImpl implements ParkingService {
     }
 
     @Override
-    public Parking findParkingById(Long id) {
-        return parkingRepository.findById(id).orElseThrow(
-                () -> new NotFoundException("There is no parking with id: " + id)
-        );
+    public ResponseEntity<Parking> findParkingById(String token, Long id) {
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+        Parking parking = parkingRepository.findParkingById(id);
+        return new ResponseEntity<>(parking, HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<Parking> findParkingByName(String name){
+    public ResponseEntity<Parking> findParkingByName(String token, String name){
+
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
         Parking parking = parkingRepository.findParkingByName(name);
         if(parking != null) {
             return new ResponseEntity<>(parking, HttpStatus.OK);
@@ -91,31 +210,26 @@ public class ParkingServiceImpl implements ParkingService {
     }
 
     @Override
-    public ResponseEntity<List<Vehicle>> findVehicleByParking(Long parkingId){
-        Parking parking = parkingRepository.findById(parkingId).orElseThrow(
-                () ->  new NotFoundException("There is no parking with id: " + parkingId)
-        );
+    public ResponseEntity<List<Vehicle>> findVehicleByParking(String token, Long parkingId){
+
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Parking parking = parkingRepository.findParkingById(parkingId);
+        if (parking == null) {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
         return new ResponseEntity<>(parking.getVehicles(),HttpStatus.OK);
     }
     @Override
-    public ResponseEntity<Parking> saveParking(ParkingDto parkingDto) {
-        /*try {
-            AppUser byUsername = appUserRepository.findUserByUsername(appUserRegisterDto.getUsername());
-            AppUser byEmail = appUserRepository.findUserByEmail(appUserRegisterDto.getEmail());
-            if(byUsername != null || byEmail != null) {
-                return new ResponseEntity<>(null, HttpStatus.CONFLICT);
-            }
-            AppUser appUser = new AppUser(appUserRegisterDto);
-            appUser.setSalt(passwordHashing.generateSalt());
-            appUser.setPassword(passwordHashing.hashString(appUser.getPassword(), appUser.getSalt()));
-            appUserRepository.save(appUser);
-            return new ResponseEntity<>("User successfully Created", HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-         */
-
+    public ResponseEntity<Parking> saveParking(String token, ParkingDto parkingDto) {
         try{
+
+            if (!JwtUtil.isAuthorizedAdmin(token)) {
+                return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+            }
+
             Parking byName = parkingRepository.findParkingByName(parkingDto.getName());
             Parking byCoordinates = parkingRepository.findParkingByCoord(parkingDto.getX(), parkingDto.getY());
             if(byName != null || byCoordinates != null){
@@ -123,11 +237,6 @@ public class ParkingServiceImpl implements ParkingService {
             }
             Parking parking = new Parking(parkingDto);
             parkingRepository.save(parking);
-            for(int i=0;i<30;i++){
-                LocalDateTime nextDayTime = LocalDateTime.now().plusDays(i);
-                java.sql.Date nextDate = java.sql.Date.valueOf(nextDayTime.toLocalDate());
-                parkingFluxRepository.save(new ParkingFlux(nextDate,(long)0,(long)0,parking));
-            }
             return new ResponseEntity<>(parking, HttpStatus.OK);
         }catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -135,20 +244,32 @@ public class ParkingServiceImpl implements ParkingService {
     }
 
     @Override
-    public List<ResponseEntity<Parking>> saveParking(List<ParkingDto> parkings){
-        List<ResponseEntity<Parking>> newParkings = new ArrayList<>();
-        for(ParkingDto parking : parkings){
-            newParkings.add(this.saveParking(parking));
+    public ResponseEntity<List<Parking>> saveParking(String token, List<ParkingDto> parkings){
+
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
         }
-        return newParkings;
+
+        List<Parking> newParkings = new ArrayList<>();
+        for(ParkingDto parking : parkings){
+            newParkings.add(this.saveParking(token, parking).getBody());
+        }
+        return new ResponseEntity<>(newParkings, HttpStatus.OK);
     }
 
         @Override
-    public ResponseEntity<Parking> updateParking(ParkingDto parkingDto, Long id) {
+    public ResponseEntity<Parking> updateParking(String token, ParkingDto parkingDto, Long id) {
             try {
-                Parking parkingToModify = parkingRepository.findById(id).orElseThrow(
-                        () -> new NotFoundException("Cannot make update operation. There is no parking with id: " + id)
-                );
+
+                if (!JwtUtil.isAuthorizedAdmin(token)) {
+                    return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+                }
+
+                Parking parkingToModify = parkingRepository.findParkingById(id);
+
+                if (parkingToModify == null) {
+                    return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+                }
 
                 if (parkingRepository.findParkingByName(parkingDto.getName()) != null && parkingRepository.findParkingByName(parkingDto.getName()) != parkingToModify) {
                     return new ResponseEntity<>(null, HttpStatus.CONFLICT);
@@ -170,11 +291,16 @@ public class ParkingServiceImpl implements ParkingService {
         }
 
     @Override
-    public void deleteParkingById(Long id) {
-        parkingRepository.findById(id).orElseThrow(
-                () -> new NotFoundException("Cannot make delete operation. There is no parking with id: " + id)
-        ); // firstly, we assure that there is a parking with given id
+    public ResponseEntity<String> deleteParkingById(String token, Long id) {
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+        Parking parking = parkingRepository.findParkingById(id);
+        if (parking == null) {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
         parkingRepository.deleteById(id);
+        return new ResponseEntity<>("Ok", HttpStatus.OK);
     }
 
     @Override
@@ -183,8 +309,8 @@ public class ParkingServiceImpl implements ParkingService {
     }
 
     @Override
-    public void addVehicleToParking(Long parkingId, Long vehicleId){
-        Parking finalParking = this.findParkingById(parkingId);
+    public ResponseEntity<String> addVehicleToParking(String token,Long parkingId, Long vehicleId){
+        Parking finalParking = parkingRepository.findParkingById(parkingId);
         Vehicle vehicle = vehicleRepository.findById(vehicleId).orElseThrow(
                () -> new NotFoundException("false")
         );
@@ -197,9 +323,10 @@ public class ParkingServiceImpl implements ParkingService {
         // updated it according to that
         Parking initialParking = vehicle.getCurrentParking();
         if(initialParking != null) {
-            initialParking.setCurrentCapacity(initialParking.getCurrentCapacity() - 1);
-            initialParking.removeVehicle(vehicle);
-            this.parkingRepository.save(initialParking);
+            // initialParking.setCurrentCapacity(initialParking.getCurrentCapacity() - 1);
+            // initialParking.removeVehicle(vehicle);
+            // this.parkingRepository.save(initialParking);
+            return new ResponseEntity<>("Impossible", HttpStatus.CONFLICT);
         }
 
         finalParking.setCurrentCapacity(finalParking.getCurrentCapacity() + 1);
@@ -207,15 +334,22 @@ public class ParkingServiceImpl implements ParkingService {
         this.parkingRepository.save(finalParking);
         vehicle.setCurrentParking(finalParking);
         vehicleRepository.save(vehicle);
+        return new ResponseEntity<>("OK", HttpStatus.OK);
     }
 
 
     @Override
-    public void removeVehicleFromParking(Long parkingId, Long vehicleId){
-        Parking parking = this.findParkingById(parkingId);
+    public ResponseEntity<String> removeVehicleFromParking(String token, Long parkingId, Long vehicleId, VehicleService vehicleService){
+
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>("Impossible", HttpStatus.UNAUTHORIZED);
+        }
+
+        Parking parking = parkingRepository.findParkingById(parkingId);
         if(parking != null) {
            boolean found = false;
-           for(Vehicle v : parking.getVehicles()) {
+           List<Vehicle> canBeRemoved = vehicleService.getVehiclesCanBeRemoved(token, parkingId).getBody();
+           for(Vehicle v : canBeRemoved) {
                if (v.getId() == vehicleId) {
                    found = true;
                    parking.removeVehicle(v);
@@ -228,10 +362,12 @@ public class ParkingServiceImpl implements ParkingService {
                }
            }
            if(!found) {
-               throw new NotFoundException("There is no vehicle with id: " + vehicleId + " in parking " + parking.getName());
+               return new ResponseEntity<>("Impossible", HttpStatus.NOT_FOUND);
+           } else {
+               return new ResponseEntity<>( "OK", HttpStatus.OK);
            }
         }else {
-            throw  new NotFoundException("There is no parking with id: " + parkingId);
+            return new ResponseEntity<>("Impossible", HttpStatus.NOT_FOUND);
         }
     }
 

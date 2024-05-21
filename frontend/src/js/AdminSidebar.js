@@ -1,6 +1,6 @@
 import React, {useState} from 'react'
 import 'bootstrap-icons/font/bootstrap-icons.css';
-const AdminSidebar = () => {
+const AdminSidebar = ({username}) => {
     const [vehicleSubMenuVisible, setVehicleSubMenuVisible] = useState(false);
     const [profileSubMenuVisible, setProfileSubMenuVisible] = useState(false);
     const [userSubMenuVisible, setUserSubMenuVisible] = useState(false);
@@ -25,23 +25,29 @@ const AdminSidebar = () => {
         setParkingSubMenuVisible(!parkingSubMenuVisible);
     }
 
+    const toggleRebalancing = (event) => {
+        event.preventDefault();
+        window.location.href = '/rebalancing'
+    }
+
     return (
         <div className="d-flex justify-content-between flex-column bg-light text-white p-3" style={{border: "1px solid black"}}>
-            <a href="">
+            <div style={{color : "darkslategray", textAlign: "center"}}>
                 <i className="bi bi-code-slash fs-4 me-4"></i>
-                <span className="fs-4">-SelfDrive-</span> <br/>
-                <span className="fs-5">Admin Dashboard</span>
-            </a>
+                <h5>-SelfDrive-</h5> <br/>
+                <span>Admin Dashboard</span> <br/>
+                <span>Hello, {username}</span>
+            </div>
             <hr className="text-secondary"/>
             <ul className="nav nav-pills flex-column">
                 <li className="nav-item">
-                    <a href="/admin-dashboard">
+                    <a href="/admin-dashboard" style={{color: 'darkslategray'}}>
                         <i className="bi bi-speedometer2 me-3"></i>
                         <span><strong>Dashboard</strong></span>
                     </a>
                 </li>
                 <li className="nav-item">
-                    <a href="#" onClick={toggleProfileSubMenu}>
+                    <a href="#" onClick={toggleProfileSubMenu} style={{color: 'darkslategray'}}>
                         <i className="bi bi-person-rolodex me-3"></i>
                         <span><strong>Profile</strong></span>
                         {profileSubMenuVisible ? (
@@ -53,12 +59,12 @@ const AdminSidebar = () => {
                     {profileSubMenuVisible && (
                         <ul className="nav flex-column ps-5">
                             <li className="nav-item">
-                                <a href="#">
+                                <a href="#" style={{color: 'darkslategray'}}>
                                     <span>View Profile</span>
                                 </a>
                             </li>
                             <li className="nav-item">
-                                <a href="#">
+                                <a href="#" style={{color: 'darkslategray'}}>
                                     <span>Edit Profile</span>
                                 </a>
                             </li>
@@ -66,7 +72,7 @@ const AdminSidebar = () => {
                     )}
                 </li>
                 <li className="nav-item">
-                    <a href="#" onClick={toggleUserSubMenu}>
+                    <a href="#" onClick={toggleUserSubMenu} style={{color: 'darkslategray'}}>
                         <i className="bi bi-people me-3"></i>
                         <span><strong>User</strong></span>
                         {userSubMenuVisible ? (
@@ -78,12 +84,12 @@ const AdminSidebar = () => {
                     {userSubMenuVisible && (
                         <ul className="nav flex-column ps-5">
                             <li className="nav-item">
-                                <a href="/user">
+                                <a href="/user" style={{color: 'darkslategray'}}>
                                     <span>Inspect Users</span>
                                 </a>
                             </li>
                             <li className="nav-item">
-                                <a href="#">
+                                <a href="/user/general-statistics" style={{color: 'darkslategray'}}>
                                     <span>View Statistics</span>
                                 </a>
                             </li>
@@ -92,7 +98,7 @@ const AdminSidebar = () => {
                 </li>
 
                 <li className="nav-item">
-                    <a href="#" onClick={toggleVehicleSubMenu}>
+                    <a href="#" onClick={toggleVehicleSubMenu} style={{color: 'darkslategray'}}>
                         <i className="bi bi-car-front me-3"></i>
                         <span><strong>Vehicle</strong></span>
                         {vehicleSubMenuVisible ? (
@@ -104,17 +110,17 @@ const AdminSidebar = () => {
                     {vehicleSubMenuVisible && (
                         <ul className="nav flex-column ps-5">
                             <li className="nav-item">
-                                <a href="/vehicle?page=1">
+                                <a href="/vehicle?page=1" style={{color: 'darkslategray'}}>
                                     <span>Inspect Vehicles</span>
                                 </a>
                             </li>
                             <li className="nav-item">
-                                <a href="/vehicle/create">
+                                <a href="/vehicle/create" style={{color: 'darkslategray'}}>
                                     <span>Create Vehicle</span>
                                 </a>
                             </li>
                             <li className="nav-item">
-                                <a href="#">
+                                <a href="/vehicle/statistics/general" style={{color: 'darkslategray'}}>
                                     <span>View Statistics</span>
                                 </a>
                             </li>
@@ -123,7 +129,7 @@ const AdminSidebar = () => {
                 </li>
 
                 <li className="nav-item">
-                    <a href="#" onClick={toggleParkingSubMenu}>
+                    <a href="#" onClick={toggleParkingSubMenu} style={{color: 'darkslategray'}}>
                         <i className="bi bi-p-circle me-3"></i>
                         <span><strong>Parking</strong></span>
                         {parkingSubMenuVisible ? (
@@ -135,22 +141,29 @@ const AdminSidebar = () => {
                     {parkingSubMenuVisible && (
                         <ul className="nav flex-column ps-5">
                             <li className="nav-item">
-                                <a href="/parking?page=1">
+                                <a href="/parking?page=1" style={{color: 'darkslategray'}}>
                                     <span>Inspect Parkings</span>
                                 </a>
                             </li>
                             <li className="nav-item">
-                                <a href="/parking/create">
+                                <a href="/parking/create" style={{color: 'darkslategray'}}>
                                     <span>Create Parking</span>
                                 </a>
                             </li>
                             <li className="nav-item">
-                                <a href="#">
+                                <a href="/parking/statistics/general" style={{color: 'darkslategray'}}>
                                     <span>View Statistics</span>
                                 </a>
                             </li>
                         </ul>
                     )}
+                </li>
+
+                <li className="nav-item">
+                    <a href="#" onClick={toggleRebalancing} style={{color: 'darkslategray'}}>
+                        <i className="bi bi-aspect-ratio-fill me-3"></i>
+                        <span><strong>Rebalancing</strong></span>
+                    </a>
                 </li>
 
             </ul>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import AppNavbar from "./AppNavbar";
+import AppNavbar from "./AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import AppFooter from "./AppFooter";
 
 const VerifyEmailForm = () => {
     const [userData, setUserData] = useState({
@@ -133,6 +134,7 @@ const VerifyEmailForm = () => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

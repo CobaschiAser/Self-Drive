@@ -102,3 +102,7 @@
 .ItemList-header .viewButton:hover {
     background-color: bisque;
 }
+
+.highlight {
+    color: red;
+}

@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +29,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
     @Query("SELECT u.salt FROM AppUser u WHERE u.username=:username")
     public String getSalt(@Param("username") String username);
 
-    @Query("SELECT u FROM AppUser u WHERE u.authenticationToken=:authenticationToken")
-    public Optional<AppUser> findUserByAuthenticationToken(@Param("authenticationToken") UUID authenticationToken);
+    Optional<AppUser> findUserByAuthenticationToken(UUID authenticationToken);
+    @Query("SELECT u FROM AppUser u WHERE u.registrationDate>:date ")
+    public List<AppUser> findUserRegisteredBefore(@Param("date") Date date);
+
 }

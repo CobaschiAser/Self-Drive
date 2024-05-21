@@ -1,4 +1,4 @@
-package com.example.webjpademoapplicationsecondtry.helpers;
+package com.example.webjpademoapplicationsecondtry.utils;
 
 public class InputDate {
     private int year;

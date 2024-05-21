@@ -1,9 +1,30 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import '../../css/CreateForm.css';
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import AppFooter from "../AppFooter";
+import {jwtDecode} from "jwt-decode";
+import MyNavbar from "../MyNavbar";
 
 const NewVehicleForm = () => {
+
+    const [jwt, setJwt] = useState(localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
+
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        if (jwt !== '' && jwt['isAdmin'] === '0') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+        if (jwt === '') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+    }, [jwt])
+
     const [vehicleData, setVehicleData] = useState({
         brand: '',
         model: '',
@@ -51,6 +72,7 @@ const NewVehicleForm = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}`
                 },
                 body: JSON.stringify(vehicleData),
             });
@@ -74,6 +96,7 @@ const NewVehicleForm = () => {
                 });
             } else {
                 // Handle error
+                setSuccessfullyCreated(false);
                 console.error('Failed to create vehicle');
             }
         } catch (error) {
@@ -81,17 +104,23 @@ const NewVehicleForm = () => {
         }
     };
 
+    if (error) {
+        return(
+            <div>Error..</div>
+        )
+    }
+
     return (
-        <div>
-            <AppNavbar/>
+        <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
+            <MyNavbar/>
             <Container className="mt-5 d-flex justify-content-center">
-                <Form className="create-form">
+                <Form className="create-form" style={{borderColor: 'black', marginBottom: '7vh'}}>
                     {emptyField && <div className="text-center"><Form.Text className="text-danger" > Please fill empty fields</Form.Text></div>}
                     <br/>
                     <h2 className="mb-b text-center">Create Vehicle Form</h2>
                     <Form.Group controlId="formBasicName">
                         <Form.Label>Brand</Form.Label>
-                        <Form.Control
+                        <Form.Control className="control-item"
                             type="text"
                             name="brand"
                             placeholder="Enter brand"
@@ -200,7 +229,7 @@ const NewVehicleForm = () => {
                     </Form.Group>
                     <br/>
                     <div className="text-center">
-                        <Button variant="primary" type="button" onClick={handleSubmit}>
+                        <Button variant="secondary" type="button" onClick={handleSubmit}>
                             Create Vehicle
                         </Button>
                         <br/>
@@ -208,6 +237,7 @@ const NewVehicleForm = () => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

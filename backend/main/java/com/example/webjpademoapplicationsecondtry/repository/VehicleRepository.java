@@ -1,5 +1,6 @@
 package com.example.webjpademoapplicationsecondtry.repository;
 
+import com.example.webjpademoapplicationsecondtry.entity.Parking;
 import com.example.webjpademoapplicationsecondtry.entity.Vehicle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +21,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     @Query("SELECT v FROM Vehicle v WHERE v.id = :id")
     public Vehicle findVehicleById(@Param("id") Long id);
 
+    @Query("SELECT v FROM Vehicle v WHERE v.currentParking = null ")
+    public List<Vehicle> findVehicleWithNullParking();
+
+    @Query("SELECT v FROM Vehicle v WHERE v.currentParking.id =:parkingId")
+    public List<Vehicle> findVehicleByParkingId(@Param("parkingId") Long parkingId);
 }

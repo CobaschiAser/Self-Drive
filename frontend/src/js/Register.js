@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import '../css/Register.css';
-import AppNavbar from "./AppNavbar";
+import AppNavbar from "./AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import AppFooter from "./AppFooter";
+import MyNavbar from "./MyNavbar";
+import {jwtDecode} from "jwt-decode";
 
 const RegisterForm = () => {
+
+    const [currentJwt, setCurrentJwt] = useState( localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
     const [userData, setUserData] = useState({
         name: '',
         email: '',
@@ -20,6 +25,10 @@ const RegisterForm = () => {
         setUserData({ ...userData, [name]: value });
     };
 
+    if (currentJwt !== '') {
+        window.location.href = '/home';
+        return;
+    }
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -80,16 +89,16 @@ const RegisterForm = () => {
     };
 
     return (
-        <div>
-            <AppNavbar/>
-            <Container className="mt-5 d-flex justify-content-center">
-                <Form className="register-form">
+        <div style = {{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
+            <MyNavbar/>
+            <Container style={{marginBottom: '7vh'}} className="mt-5 d-flex justify-content-center">
+                <Form className="register-form" style={{ borderColor: "black"}}>
                     {emptyField && <div className="text-center"><Form.Text className="text-danger" > Please fill empty fields</Form.Text></div>}
                     <br/>
                     <h2 className="mb-b text-center">Register</h2>
                     <Form.Group controlId="formBasicName">
                         <Form.Label>Name</Form.Label>
-                        <Form.Control
+                        <Form.Control className="register-control-form"
                             type="text"
                             name="name"
                             placeholder="Enter name"
@@ -100,7 +109,7 @@ const RegisterForm = () => {
 
                     <Form.Group controlId="formBasicEmail">
                         <Form.Label>Email</Form.Label>
-                        <Form.Control
+                        <Form.Control className="register-control-form"
                             type="email"
                             name="email"
                             placeholder="Enter email"
@@ -111,7 +120,7 @@ const RegisterForm = () => {
 
                     <Form.Group controlId="formBasicUsername">
                         <Form.Label>Username</Form.Label>
-                        <Form.Control
+                        <Form.Control className="register-control-form"
                             type="text"
                             name="username"
                             placeholder="Enter username"
@@ -122,7 +131,7 @@ const RegisterForm = () => {
 
                     <Form.Group controlId="formBasicPassword">
                         <Form.Label>Password</Form.Label>
-                        <Form.Control
+                        <Form.Control className="register-control-form"
                             type="password"
                             name="password"
                             placeholder="Password"
@@ -133,7 +142,7 @@ const RegisterForm = () => {
 
                     <Form.Group controlId="formBasicPassword">
                         <Form.Label>Confirm Password</Form.Label>
-                        <Form.Control
+                        <Form.Control className="register-control-form"
                             type="password"
                             name="confirmPassword"
                             placeholder="Confirm password"
@@ -144,10 +153,10 @@ const RegisterForm = () => {
                     </Form.Group>
                     <br/>
                     <div className="text-center">
-                        <Form.Text className="">Already have an account? <a href="/login">Login now</a></Form.Text>
+                        <Form.Text className="">Already have an account? <a href="/login" style={{color: 'darkslategray'}}>Login now</a></Form.Text>
                         <br/>
                         <br/>
-                        <Button variant="primary" type="button" onClick={handleSubmit}>
+                        <Button variant="secondary" type="button" style={{borderColor: "black", borderWidth: '2px'}} onClick={handleSubmit}>
                             Create Account
                         </Button>
                         <br/>
@@ -156,6 +165,7 @@ const RegisterForm = () => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

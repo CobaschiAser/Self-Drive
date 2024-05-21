@@ -6,30 +6,36 @@ import com.example.webjpademoapplicationsecondtry.entity.Vehicle;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ParkingService {
-    public ResponseEntity<List<Parking>> findAllParking();
-    public Parking findParkingById(Long id);
+    public ResponseEntity<List<Parking>> findAllParking(String token);
+    public ResponseEntity<Parking> findParkingById(String token, Long id);
+
+    public ResponseEntity<List<Long>> findParkingStatistics(String token, Integer all, Long id, String period);
+
+
+    public ResponseEntity<Map<Long, Long>> findParkingHierarchy(String token, String period);
 
     public ResponseEntity<List<Parking>> findParkingByPage(Integer page);
 
     public ResponseEntity<Integer> getNumberOfPages();
 
-    public ResponseEntity<Parking> findParkingByName(String name);
+    public ResponseEntity<Parking> findParkingByName(String token, String name);
     public ResponseEntity<Parking> findParkingByVehicleId(Long id);
 
-    public ResponseEntity<List<Vehicle>> findVehicleByParking(Long parkingId);
-    public ResponseEntity<Parking> saveParking(ParkingDto parkingDto);
+    public ResponseEntity<List<Vehicle>> findVehicleByParking(String token, Long parkingId);
+    public ResponseEntity<Parking> saveParking(String token, ParkingDto parkingDto);
 
-    public List<ResponseEntity<Parking>> saveParking(List<ParkingDto> parkings);
+    public ResponseEntity<List<Parking>> saveParking(String token, List<ParkingDto> parkings);
 
-    public ResponseEntity<Parking> updateParking(ParkingDto parkingDto, Long id);
+    public ResponseEntity<Parking> updateParking(String token, ParkingDto parkingDto, Long id);
 
-    public void deleteParkingById(Long id);
+    public ResponseEntity<String> deleteParkingById(String token, Long id);
 
     public boolean checkFreeSpace(Parking parking);
 
-    public void addVehicleToParking(Long parkingId, Long vehicleId);
+    public ResponseEntity<String> addVehicleToParking(String token, Long parkingId, Long vehicleId);
 
-    public void removeVehicleFromParking(Long parkingId, Long vehicleId);
+    public ResponseEntity<String> removeVehicleFromParking(String token, Long parkingId, Long vehicleId, VehicleService vehicleService);
 }

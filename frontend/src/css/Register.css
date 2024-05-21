@@ -3,3 +3,8 @@
     padding: 20px; /* Add padding to the form */
     border-radius: 20px; /* Add border-radius for rounded corners */
 }
+
+.register-control-form {
+    border-color: black;
+    border-width: 1px;
+}

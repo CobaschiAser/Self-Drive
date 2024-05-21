@@ -6,6 +6,7 @@ import com.example.webjpademoapplicationsecondtry.entity.Request;
 import com.example.webjpademoapplicationsecondtry.entity.Ride;
 import com.example.webjpademoapplicationsecondtry.security.PasswordHashing;
 import com.example.webjpademoapplicationsecondtry.service.EmailService;
+import com.example.webjpademoapplicationsecondtry.service.PreferenceService;
 import com.example.webjpademoapplicationsecondtry.service.RequestService;
 import com.example.webjpademoapplicationsecondtry.service.AppUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,32 +29,41 @@ public class AppUserController {
 
     private final EmailService emailService;
 
+    private final PreferenceService preferenceService;
+
     @Autowired
-    public AppUserController(AppUserService appUserService, PasswordHashing passwordHashing, RequestService requestService, EmailService emailService) {
+    public AppUserController(AppUserService appUserService, PasswordHashing passwordHashing, RequestService requestService, EmailService emailService, PreferenceService preferenceService) {
         this.appUserService = appUserService;
         this.passwordHashing = passwordHashing;
         this.requestService = requestService;
         this.emailService = emailService;
+        this.preferenceService = preferenceService;
     }
 
     @GetMapping
-    public List<AppUser> findAllUser(){
-        return appUserService.findAllUser();
+    public ResponseEntity<List<AppUser>> findAllUser(@RequestHeader(name = "Authorization") String token){
+        // System.out.println(token);
+        return appUserService.findAllUser(token);
+    }
+
+    @GetMapping("/statistics")
+    public ResponseEntity<List<AppUser>> findUserRegisteredBefore(@RequestHeader(name = "Authorization") String token, @RequestParam String period){
+        return appUserService.findUserByDate(period, token);
     }
 
     @GetMapping("/{id}")
-    public AppUser findUserById(@PathVariable("id") UUID id){
-        return appUserService.findUserById(id);
+    public ResponseEntity<AppUser> findUserById(@RequestHeader(name = "Authorization") String token, @PathVariable("id") UUID id){
+        return appUserService.findUserById(id, token);
     }
 
     @GetMapping("/{id}/request")
-    public ResponseEntity<Set<Request>> findUserRequests(@PathVariable("id") UUID id){
-        return appUserService.findUserRequests(id);
+    public ResponseEntity<Set<Request>> findUserRequests(@RequestHeader(name = "Authorization") String token, @PathVariable("id") UUID id){
+        return appUserService.findUserRequests(id, token);
     }
 
     @GetMapping("/{id}/ride")
-    public ResponseEntity<Set<Ride>> findUserRides(@PathVariable("id") UUID id){
-        return appUserService.findUserRides(id);
+    public ResponseEntity<Set<Ride>> findUserRides(@RequestHeader(name = "Authorization") String token, @PathVariable("id") UUID id){
+        return appUserService.findUserRides(id, token);
     }
     @PostMapping()
     public ResponseEntity<String> saveUser(@RequestBody AppUserRegisterDto appUser){
@@ -76,18 +86,18 @@ public class AppUserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AppUser> login(@RequestBody AppUserLoginDto userLoginDto){
+    public ResponseEntity<String> login(@RequestBody AppUserLoginDto userLoginDto){
         return appUserService.login(userLoginDto.getUsername(), userLoginDto.getPassword(), passwordHashing);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AppUser> updateUser(@RequestBody AppUserEditDto appUserEditDto, @PathVariable("id")UUID id){
-        return appUserService.updateUser(appUserEditDto, id,passwordHashing);
+    public ResponseEntity<AppUser> updateUser(@RequestHeader(name = "Authorization") String token, @RequestBody AppUserEditDto appUserEditDto, @PathVariable("id")UUID id){
+        return appUserService.updateUser(appUserEditDto, id, token, passwordHashing, emailService);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable("id") UUID id){
-        appUserService.deleteUserById(id, requestService);
+    public ResponseEntity<String> deleteUser(@RequestHeader(name = "Authorization") String token, @PathVariable("id") UUID id){
+        return appUserService.deleteUserById(token, id, requestService, preferenceService);
     }
 
 }

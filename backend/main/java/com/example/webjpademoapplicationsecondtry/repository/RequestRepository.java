@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface RequestRepository extends JpaRepository<Request, Long> {
@@ -23,4 +24,16 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
 
     @Query("SELECT r FROM Request r WHERE r.id = :id")
     Request findRequestById(@Param("id") Long id);
+
+    @Query("SELECT r FROM Request r WHERE r.owner.id =:userUUID")
+    List<Request> findRequestByUserUUID(@Param("userUUID") UUID userUUID);
+
+    @Query("SELECT r FROM Request r WHERE r.departure =:name OR r.arrival=:name")
+    List<Request> findRequestByParking(@Param("name") String name);
+
+    @Query("SELECT r FROM Request r WHERE r.id =:vehicleId AND NOT r.solved")
+    List<Request> findUnsolvedRequestWithVehicle(@Param("vehicleId") Long vehicleId);
+
+    @Query("SELECT r FROM Request r WHERE r.id =:vehicleId AND r.started AND NOT r.solved")
+    List<Request> findActiveRequestWithVehicle(@Param("vehicleId") Long vehicleId);
 }

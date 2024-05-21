@@ -10,36 +10,40 @@ import com.example.webjpademoapplicationsecondtry.entity.Ride;
 import com.example.webjpademoapplicationsecondtry.security.PasswordHashing;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
+/*import org.springframework.security.core.userdetails.User;*/
 
+import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 public interface AppUserService {
-    public List<AppUser> findAllUser();
+    public ResponseEntity<List<AppUser>> findAllUser(String token);
 
-    public AppUser findUserById(UUID id);
+    public ResponseEntity<List<AppUser>> findUserByDate(String period, String token);
 
-    // public Optional<User> findUserByToken(String token);
+    public ResponseEntity<AppUser> findUserById(UUID id, String token);
+
+    //public Optional<User> findUserByToken(String token);
     public AppUser findUserByEmail(String email);
 
     public AppUser findUserByUsername(String username);
 
-    public ResponseEntity<Set<Request>> findUserRequests(UUID userId);
+    public ResponseEntity<Set<Request>> findUserRequests(UUID userId, String token);
 
-    public ResponseEntity<Set<Ride>> findUserRides(UUID userId);
+    public ResponseEntity<Set<Ride>> findUserRides(UUID userId, String token);
 
-    public ResponseEntity<AppUser> login(String username, String password, PasswordHashing passwordHashing);
+    public ResponseEntity<String> login(String username, String password, PasswordHashing passwordHashing);
 
     public ResponseEntity<String> saveUser(AppUserRegisterDto appUser, PasswordHashing passwordHashing, EmailService emailService);
 
-    public ResponseEntity<AppUser> updateUser(AppUserEditDto appUserEditDto, UUID id, PasswordHashing passwordHashing);
+    public ResponseEntity<AppUser> updateUser(AppUserEditDto appUserEditDto, UUID id, String token, PasswordHashing passwordHashing, EmailService emailService);
 
     public ResponseEntity<String> verifyUserEmail(VerifyEmailDto verifyEmailDto);
 
     public ResponseEntity<String> resetPassword(ForgetPasswordDto forgetPasswordDto, PasswordHashing passwordHashing);
 
     public ResponseEntity<String> sendResetPasswordCode(String email, EmailService emailService);
-    public void deleteUserById(UUID id, RequestService requestService);
+    public ResponseEntity<String> deleteUserById(String token, UUID id, RequestService requestService, PreferenceService preferenceService);
 }

@@ -7,7 +7,7 @@ public class AppUserEditDto {
 
     private String username;
 
-    public AppUserEditDto(String name, String email, String username) {
+    public AppUserEditDto(String name, String email, String username, String password, String newPassword, String confirmNewPassword) {
         this.name = name;
         this.email = email;
         this.username = username;
@@ -36,4 +36,5 @@ public class AppUserEditDto {
     public void setUsername(String username) {
         this.username = username;
     }
+
 }

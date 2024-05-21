@@ -27,6 +27,14 @@ import AdminDashboard from "./js/AdminDashboard";
 import VerifyEmail from "./js/VerifyEmail";
 import VerifyEmailForm from "./js/VerifyEmail";
 import SendResetPasswordCodeForm from "./js/SendResetPasswordCode";
+import UserGeneralStatistic from "./js/user/UserGeneralStatistics";
+import ParkingStatistics from "./js/parking/ParkingGeneralStatistics";
+import VehicleStatistics from "./js/vehicle/VehicleGeneralStatistics";
+import UserDashboard from "./js/UserDashboard";
+import ParkingAddVehicles from "./js/parking/ParkingAddVehicle.js";
+import ParkingRemoveVehicles from "./js/parking/ParkingRemoveVehicle";
+import Rebalancing from "./js/Rebalancing";
+import RebalancingPage from "./js/Rebalancing";
 
 const LogRouteChanges = () => {
   const history = useHistory();
@@ -46,6 +54,7 @@ class App extends Component {
           <LogRouteChanges /> {/* Add this component */}
           <Switch>
             <Route path='/' exact={true} component={Home}/>
+            <Route path='/home' exact={true} component={Home}/>
             <Route path='/parking/create' exact={true} component={NewParkingForm}/>
             <Route
                   path='/parking/:id/edit'
@@ -62,20 +71,25 @@ class App extends Component {
                   )}
             />
             <Route
-              path='/parking/:id/vehicles'
-              exact={true}
-              render={({ match, location }) => {
-                  const parkingId = match.params.id;
-                  const searchParams = new URLSearchParams(location.search);
-                  const page = parseInt(searchParams.get('page')) || 1;
-                  return <ParkingListVehicles parkingId={parkingId} page={page} />;
-              }}
+              exact path='/parking/:id/vehicles'
+              render={(props) => (
+                  <ParkingListVehicles {...props} parkingId={props.match.params.id} />
+              )}
             />
-            <Route path='/parking' render={({ location }) => {
-                  const searchParams = new URLSearchParams(location.search);
-                  const page = parseInt(searchParams.get('page')) || 1; // Default to 1 if 'page' parameter is not present or invalid
-                  return <ParkingList page={page} />;
-            }} />
+            <Route
+                  exact path='/parking/:id/add-vehicles'
+                  render={(props) => (
+                      <ParkingAddVehicles {...props} parkingId={props.match.params.id} />
+                  )}
+            />
+            <Route
+                  exact path='/parking/:id/remove-vehicles'
+                  render={(props) => (
+                      <ParkingRemoveVehicles {...props} parkingId={props.match.params.id} />
+                  )}
+            />
+            <Route path="/parking/statistics/general" exact={true} component={ParkingStatistics}/>
+            <Route exact path="/parking" component={ParkingList} />
             <Route path='/user/:id/view'
                    exact={true}
                    render={(props) => (
@@ -83,24 +97,16 @@ class App extends Component {
                    )}
             />
             <Route
-                  path='/user/:id/request'
-                  exact={true}
-                  render={({ match, location }) => {
-                      const userId = match.params.id;
-                      const searchParams = new URLSearchParams(location.search);
-                      const page = parseInt(searchParams.get('page')) || 1;
-                      return <UserListRequests userId={userId} page={page} />;
-                  }}
+                  exact path='/user/:id/request'
+                  render={(props) => (
+                      <UserListRequests {...props} userId={props.match.params.id} />
+                  )}
             />
             <Route
-                  path='/user/:id/ride'
-                  exact={true}
-                  render={({ match, location }) => {
-                      const userId = match.params.id;
-                      const searchParams = new URLSearchParams(location.search);
-                      const page = parseInt(searchParams.get('page')) || 1;
-                      return <UserListRides userId={userId} page={page} />;
-                  }}
+                  exact path='/user/:id/ride'
+                  render={(props) => (
+                      <UserListRides {...props} userId={props.match.params.id} />
+                  )}
             />
             <Route path='/user/:id/create-request'
                      exact={true}
@@ -115,18 +121,29 @@ class App extends Component {
                       <EditUserForm {...props} userId={props.match.params.id} />
                   )}
             />
-              <Route
+            <Route
                   path='/user/:userId/request/:id/edit'
                   exact={true}
                   render={(props) => (
                       <EditRequestForm {...props} requestId={props.match.params.id} userId = {props.match.params.userId}/>
                   )}
-              />
-            <Route path='/user' render={({ location }) => {
-                  const searchParams = new URLSearchParams(location.search);
-                  const page = parseInt(searchParams.get('page')) || 1; // Default to 1 if 'page' parameter is not present or invalid
-                  return <UserList page={page} />;
-            }} />
+            />
+            <Route
+                  path='/user/:userId/request/:id/view'
+                  exact={true}
+                  render={(props) => (
+                      <RequestView{...props} requestId={props.match.params.id} userId = {props.match.params.userId}/>
+                  )}
+            />
+            <Route
+                  path='/user/:userId/ride/:id/view'
+                  exact={true}
+                  render={(props) => (
+                      <RideView{...props} rideId={props.match.params.id} userId = {props.match.params.userId}/>
+                  )}
+            />
+            <Route path="/user/general-statistics" exact={true} component={UserGeneralStatistic}/>
+            <Route exact path="/user" component={UserList} />
             <Route path='/vehicle/create' exact={true} component={NewVehicleForm}/>
             <Route
                   path='/vehicle/:id'
@@ -142,11 +159,8 @@ class App extends Component {
                       <EditVehicleForm {...props} vehicleId={props.match.params.id} />
                   )}
             />
-            <Route path='/vehicle' render={({ location }) => {
-                  const searchParams = new URLSearchParams(location.search);
-                  const page = parseInt(searchParams.get('page')) || 1;
-                  return <VehicleList page={page} />;
-            }} />
+            <Route exact path="/vehicle" component={VehicleList} />
+            <Route exact path="/vehicle/statistics/general" component={VehicleStatistics} />
             <Route
                   path='/ride/:id'
                   exact={true}
@@ -154,21 +168,21 @@ class App extends Component {
                       <RideView {...props} rideId={props.match.params.id} />
                   )}
             />
-            <Route
-                  path='/request/:id'
+            {/*<Route
+                  path='user/${userId}/request/${id}/view'
                   exact={true}
                   render={(props) => (
                       <RequestView {...props} requestId={props.match.params.id} />
                   )}
-            />
-
-
+            />*/}
             <Route path='/register' exact={true} component={RegisterForm}/>
             <Route path='/login' exact={true} component={LoginForm} />
             <Route path='/send-reset-password-code' exact={true} component={SendResetPasswordCodeForm}/>
             <Route path='/reset-your-password' exact={true} component={ResetPasswordForm}/>
             <Route path='/admin-dashboard' exact={true} component={AdminDashboard}/>
+            <Route path='/dashboard' exact={true} component={UserDashboard}/>
             <Route path='/verify-email' exact={true} component={VerifyEmailForm}/>
+            <Route path='/rebalancing' exact={true} component={RebalancingPage}/>
           </Switch>
         </Router>
     );

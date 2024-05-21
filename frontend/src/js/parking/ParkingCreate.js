@@ -1,9 +1,32 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import '../../css/CreateForm.css';
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import Footer from "../AppFooter";
+import AppFooter from "../AppFooter";
+import {jwtDecode} from "jwt-decode";
+import MyNavbar from "../MyNavbar";
 
 const NewParkingForm = () => {
+
+    const [jwt, setJwt] = useState(localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
+
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        if (jwt !== '' && jwt['isAdmin'] === '0') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+        if (jwt === '') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+    }, [jwt])
+
+
     const [parkingData, setParkingData] = useState({
         name: '',
         x:'',
@@ -40,6 +63,7 @@ const NewParkingForm = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}`
                 },
                 body: JSON.stringify(parkingData),
             });
@@ -68,11 +92,17 @@ const NewParkingForm = () => {
         }
     };
 
+    if (error) {
+        return (
+            <div>Error..</div>
+        )
+    }
+
     return (
-            <div>
-                <AppNavbar/>
-                <Container className="mt-5 d-flex justify-content-center">
-                    <Form className="create-form">
+            <div style={{display:"flex", flexDirection: "column", minHeight:"100vh"}}>
+                <MyNavbar/>
+                <Container className="mt-5 d-flex justify-content-center" style={{flex:1, marginBottom:"7vh"}}>
+                    <Form className="create-form" style={{borderColor: 'black'}}>
                         {emptyField && <div className="text-center"><Form.Text className="text-danger" > Please fill empty fields</Form.Text></div>}
                         <br/>
                         <h2 className="mb-b text-center">Create Parking Form</h2>
@@ -121,7 +151,7 @@ const NewParkingForm = () => {
                         </Form.Group>
                         <br/>
                         <div className="text-center">
-                            <Button variant="primary" type="button" onClick={handleSubmit}>
+                            <Button variant="secondary" type="button" onClick={handleSubmit} style={{borderColor: 'black', borderWidth: '2px'}}>
                                 Create Parking
                             </Button>
                             <br/>
@@ -130,6 +160,7 @@ const NewParkingForm = () => {
                         </div>
                     </Form>
                 </Container>
+                <AppFooter/>
             </div>
     );
 };

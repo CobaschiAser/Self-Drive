@@ -4,6 +4,10 @@ import com.example.webjpademoapplicationsecondtry.entity.*;
 import com.example.webjpademoapplicationsecondtry.exception.NotFoundException;
 import com.example.webjpademoapplicationsecondtry.repository.*;
 import com.example.webjpademoapplicationsecondtry.service.RideService;
+import com.example.webjpademoapplicationsecondtry.utils.JwtUtil;
+import io.jsonwebtoken.Jwt;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
@@ -34,10 +38,14 @@ public class RideServiceImpl implements RideService {
     }
 
     @Override
-    public Ride findRideById(Long id) {
-        return rideRepository.findById(id).orElseThrow(
-                () -> new NotFoundException("There is no ride with id: " + id)
-        );
+    public ResponseEntity<Ride> findRideById(String token, Long id) {
+
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Ride ride = rideRepository.findRideById(id);
+        return new ResponseEntity<>(ride, HttpStatus.OK);
     }
 
     @Override
@@ -73,33 +81,21 @@ public class RideServiceImpl implements RideService {
                () -> new NotFoundException("There is no vehicle with id: "+ vehicleId)
        );
 
-            // make vehicle not busy // TO DO: make this when ride stops
-            // and mark that now he is in arrivalParking
-            // increase also current_autonomy
-        //vehicle.setCurrentAutonomy(vehicle.getCurrentAutonomy() + dist);
-            //vehicle.setBusy(false);
-        //vehicle.setCurrentParking(arrivalParking);
-        //vehicleRepository.save(vehicle);
 
-            // decrement departureParking currentCapacity
-            // and mark that vehicle left this parking
-
-        //departureParking.setCurrentCapacity(departureParking.getCurrentCapacity() - 1);
-        //departureParking.removeVehicle(vehicle);
-
-            // decrement arrivalParking reservedCapacity and increase currentCapacity
-            // and mark that vehicle is now here
-            //arrivalParking.setReservedCapacity(arrivalParking.getReservedCapacity() - 1);
-        //arrivalParking.setCurrentCapacity(arrivalParking.getCurrentCapacity() + 1);
-        //arrivalParking.addVehicle(vehicle);
-        //parkingRepository.save(arrivalParking);
-
-            // update parkingFluxes of implied Parkings(departure and arrival)
+       // update parkingFluxes of implied Parkings(departure and arrival)
         ParkingFlux parkingFluxFromDeparture = parkingFluxRepository.findParkingFluxByDateAndParking(date, departureParking);
+        if (parkingFluxFromDeparture == null) {
+            parkingFluxFromDeparture = new ParkingFlux(date, (long)0, (long)0, departureParking);
+            parkingFluxRepository.save(parkingFluxFromDeparture);
+        }
         parkingFluxFromDeparture.setOutput(parkingFluxFromDeparture.getOutput() + 1);
         parkingFluxRepository.save(parkingFluxFromDeparture);
 
         ParkingFlux parkingFluxFromArrival = parkingFluxRepository.findParkingFluxByDateAndParking(date, arrivalParking);
+        if (parkingFluxFromArrival == null) {
+            parkingFluxFromArrival = new ParkingFlux(date, (long)0, (long)0, arrivalParking);
+            parkingFluxRepository.save(parkingFluxFromArrival);
+        }
         parkingFluxFromArrival.setInput(parkingFluxFromArrival.getInput() + 1);
         parkingFluxRepository.save(parkingFluxFromArrival);
 
@@ -114,7 +110,7 @@ public class RideServiceImpl implements RideService {
 
         Ride resultedRide = new Ride(
                     dist,
-                    price_0 + price_1 + price_2,
+                    price_0 * vehicle.getComfort() + price_1 * (endHour - startHour) + price_2 * dist,
                     date,
                     startHour,
                     endHour,
@@ -132,6 +128,37 @@ public class RideServiceImpl implements RideService {
         return appUserRepository.findById(uuid).orElseThrow(
                 () -> new NotFoundException("Cannot create this request. There is no user with specified id: " +uuid)
         );
+    }
+
+    @Override
+    public ResponseEntity<Double> estimatePrice(String token, Request request){
+
+        System.out.println("Before");
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+        System.out.println("After");
+        Integer startHour = request.getStartHour();
+        Integer endHour = request.getEndHour();
+        String departure = request.getDeparture();
+        String arrival = request.getArrival();
+        Long vehicleId = request.getVehicleId();
+        AppUser owner = request.getOwner();
+
+        Parking departureParking = parkingRepository.findParkingByName(departure);
+        Parking arrivalParking = parkingRepository.findParkingByName(arrival);
+        Vehicle vehicle = vehicleRepository.findById(vehicleId).orElseThrow(
+                () -> new NotFoundException("There is no vehicle with id: "+ vehicleId)
+        );
+
+        double dist = Math.sqrt((departureParking.getX() - arrivalParking.getX()) *(departureParking.getX() - arrivalParking.getX()) + (departureParking.getY() - arrivalParking.getY()) *(departureParking.getY() - arrivalParking.getY()));
+
+        double price_0 = vehicle.getPriceComfort();
+        double price_1 = vehicle.getPriceTime();
+        double price_2 = vehicle.getPriceDistance();
+
+        double estimatedPrice = price_0 * vehicle.getComfort() + price_1 * (endHour - startHour) + price_2 * dist;
+        return  new ResponseEntity<>(estimatedPrice, HttpStatus.OK);
     }
 
 }

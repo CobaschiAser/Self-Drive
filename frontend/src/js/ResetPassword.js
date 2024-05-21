@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import '../css/ResetPassword.css';
-import AppNavbar from "./AppNavbar";
+import AppNavbar from "./AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import AppFooter from "./AppFooter";
 
 const ResetPasswordForm = () => {
     const [userData, setUserData] = useState({
@@ -183,6 +184,7 @@ const ResetPasswordForm = () => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

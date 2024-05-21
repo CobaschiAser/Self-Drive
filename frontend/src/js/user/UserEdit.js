@@ -1,10 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import '../../css/EditForm.css';
 import App from "../../App";
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import AppFooter from "../AppFooter";
+import {jwtDecode} from "jwt-decode";
+import MyNavbar from "../MyNavbar";
 
 const EditUserForm = ({ userId }) => {
+
+    const [jwt, setJwt] = useState(localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
+
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        if (jwt !== '' && jwt['isAdmin'] === '0' && jwt['uuid'] !== userId) {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+        if (jwt === '') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+    }, [jwt])
+
     const [userData, setUserData] = useState({
         name: '',
         email: '',
@@ -16,7 +37,12 @@ const EditUserForm = ({ userId }) => {
     const[successfullyEdited, setSuccessfullyEdited] = useState(false);
 
     useEffect(() => {
-        fetch(`/user/${userId}`)
+        fetch(`http://localhost:2810/user/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
             .then((response) => response.json())
             .then((data) => {
                 console.log(data);
@@ -59,6 +85,7 @@ const EditUserForm = ({ userId }) => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}`
                 },
                 body: JSON.stringify(userData),
             });
@@ -86,11 +113,14 @@ const EditUserForm = ({ userId }) => {
         }
     };
 
+    if (error) {
+        return <div> Error...</div>
+    }
     return (
-        <div>
-            <AppNavbar/>
+        <div style={{minHeight:'100vh', display: 'flex', flexDirection: 'column'}}>
+            <MyNavbar/>
             <Container className="mt-5 d-flex justify-content-center">
-                <Form className="register-form">
+                <Form className="register-form" style={{marginBottom: '7vh', borderColor: 'black'}}>
                     {emptyField && <div className="text-center"><Form.Text className="text-danger" > Please fill empty fields</Form.Text></div>}
                     <br/>
                     <h2 className="mb-b text-center">Edit User Profile</h2>
@@ -125,7 +155,7 @@ const EditUserForm = ({ userId }) => {
                     </Form.Group>
                     <br/>
                     <div className="text-center">
-                        <Button variant="primary" type="button" onClick={handleSubmit}>
+                        <Button variant="secondary" type="button" onClick={handleSubmit} style={{borderColor:'black', borderWidth: '2px'}}>
                             Edit
                         </Button>
                         <br/>
@@ -134,6 +164,7 @@ const EditUserForm = ({ userId }) => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

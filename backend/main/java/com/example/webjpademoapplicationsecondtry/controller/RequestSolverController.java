@@ -1,13 +1,11 @@
 package com.example.webjpademoapplicationsecondtry.controller;
 
-import com.example.webjpademoapplicationsecondtry.entity.Request;
-import com.example.webjpademoapplicationsecondtry.helpers.InputDate;
+import com.example.webjpademoapplicationsecondtry.utils.InputDate;
 import com.example.webjpademoapplicationsecondtry.service.RequestSolverService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Date;
-import java.util.List;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:2810")

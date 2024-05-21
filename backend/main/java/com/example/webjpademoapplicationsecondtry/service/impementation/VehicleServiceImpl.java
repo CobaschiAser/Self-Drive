@@ -1,18 +1,20 @@
 package com.example.webjpademoapplicationsecondtry.service.impementation;
 
+import com.example.webjpademoapplicationsecondtry.entity.Parking;
 import com.example.webjpademoapplicationsecondtry.entity.Request;
 import com.example.webjpademoapplicationsecondtry.entity.Vehicle;
-import com.example.webjpademoapplicationsecondtry.exception.NotFoundException;
+import com.example.webjpademoapplicationsecondtry.repository.ParkingRepository;
 import com.example.webjpademoapplicationsecondtry.repository.RequestRepository;
 import com.example.webjpademoapplicationsecondtry.repository.VehicleRepository;
 import com.example.webjpademoapplicationsecondtry.service.ParkingService;
 import com.example.webjpademoapplicationsecondtry.service.VehicleService;
+import com.example.webjpademoapplicationsecondtry.utils.JwtUtil;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 public class VehicleServiceImpl implements VehicleService {
@@ -21,27 +23,118 @@ public class VehicleServiceImpl implements VehicleService {
 
     private final RequestRepository requestRepository;
 
-    public VehicleServiceImpl(VehicleRepository vehicleRepository, RequestRepository requestRepository) {
+    private final ParkingRepository parkingRepository;
+
+    public VehicleServiceImpl(VehicleRepository vehicleRepository, RequestRepository requestRepository, ParkingRepository parkingRepository) {
         this.vehicleRepository = vehicleRepository;
         this.requestRepository = requestRepository;
+        this.parkingRepository = parkingRepository;
     }
 
 
     @Override
-    public List<Vehicle> findAllVehicle() {
-        return vehicleRepository.findAll();
+    public ResponseEntity<List<Vehicle>> findAllVehicle(String token) {
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        return new ResponseEntity<>(vehicles, HttpStatus.OK);
+    }
+
+
+    @Override
+    public ResponseEntity<List<Vehicle>> getVehiclesCanBeAdded(String token) {
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+        List<Vehicle> vehicles = vehicleRepository.findVehicleWithNullParking();
+        vehicles.removeIf(vehicle -> !requestRepository.findActiveRequestWithVehicle(vehicle.getId()).isEmpty());
+        return new ResponseEntity<>(vehicles, HttpStatus.OK);
     }
 
     @Override
-    public Vehicle findVehicleById(Long id) {
-        return vehicleRepository.findById(id).orElseThrow(
-                () -> new NotFoundException("There is no vehicle with id = " + id)
-        );
+    public ResponseEntity<List<Vehicle>> getVehiclesCanBeRemoved(String token, Long parkingId) {
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+        List<Vehicle> vehicles = vehicleRepository.findVehicleByParkingId(parkingId);
+        List<Vehicle> canBeRemoved = new ArrayList<>();
+        for (Vehicle vehicle : vehicles) {
+            if (requestRepository.findActiveRequestWithVehicle(vehicle.getId()).isEmpty()) {
+                canBeRemoved.add(vehicle);
+            }
+        }
+        return new ResponseEntity<>(canBeRemoved, HttpStatus.OK);
     }
 
     @Override
-    public Vehicle saveVehicle(Vehicle vehicle) {
-        return vehicleRepository.save(vehicle);
+    public ResponseEntity<List<Vehicle>> getVehiclesAfterRequest(String token, Long parkingId) {
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+        List<Vehicle> allVehicles = vehicleRepository.findAll();
+        List<Vehicle> vehicles = vehicleRepository.findVehicleByParkingId(parkingId);
+        for (Vehicle vehicle : allVehicles) {
+            List<Request> requests = requestRepository.findActiveRequestWithVehicle(vehicle.getId());
+            for (Request request : requests) {
+                Parking departureParking = parkingRepository.findParkingByName(request.getDeparture());
+                if (parkingId == departureParking.getId()) {
+                    vehicles.remove(vehicle);
+                }
+                Parking arrivalParking = parkingRepository.findParkingByName(request.getArrival());
+                if (parkingId == arrivalParking.getId()) {
+                    vehicles.add(vehicle);
+                }
+            }
+        }
+
+        return new ResponseEntity<>(vehicles, HttpStatus.OK);
+    }
+    @Override
+    public ResponseEntity<Vehicle> findVehicleById(Long id, String token) {
+
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Vehicle vehicle = vehicleRepository.findVehicleById(id);
+
+        return new ResponseEntity<>(vehicle, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Map<String,Integer>> getVehicleStatistics(String criteria, String token){
+
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Map<String, Integer> results = new HashMap<>();
+        switch (criteria){
+            case "fabricationYear":
+                results = this.getVehicleStatisticsFabricationYear();
+                break;
+            case "type":
+                results = this.getVehicleStatisticsVehicleType();
+                break;
+            case "currentParking":
+                results = this.getVehicleStatisticsCurrentParking();
+                break;
+            default:
+                break;
+        }
+        return new ResponseEntity<>(results, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Vehicle> saveVehicle(String token, Vehicle vehicle) {
+
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Vehicle newVehicle = vehicleRepository.save(vehicle);
+        return new ResponseEntity<>(newVehicle, HttpStatus.OK);
     }
 
     @Override
@@ -49,21 +142,46 @@ public class VehicleServiceImpl implements VehicleService {
         return vehicleRepository.saveAll(vehicleList);
     }
     @Override
-    public Vehicle updateVehicle(Vehicle vehicle, Long id) {
-        Vehicle toModifyVehicle = vehicleRepository.findById(id).orElseThrow(
-                () -> new NotFoundException("There is no user with id: " + id)
-        ); // we assure that there is a user with id given in order to modify that user
+    public ResponseEntity<Vehicle> updateVehicle(String token, Vehicle vehicle, Long id) {
+
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        Vehicle toModifyVehicle = vehicleRepository.findVehicleById(id);
+
+        if (toModifyVehicle == null) {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+
         toModifyVehicle.setPriceComfort(vehicle.getPriceComfort());
         toModifyVehicle.setPriceTime(vehicle.getPriceTime());
         toModifyVehicle.setPriceDistance(vehicle.getPriceDistance());
-        return vehicleRepository.save(toModifyVehicle);
+
+        return new ResponseEntity<>(vehicleRepository.save(toModifyVehicle), HttpStatus.OK);
     }
 
     @Override
-    public void deleteVehicleById(Long vehicleId, ParkingService parkingService) {
-        Vehicle vehicle = vehicleRepository.findById(vehicleId).orElseThrow(
-                () -> new NotFoundException("Cannot make delete operation.There is no vehicle with id: "+ vehicleId)
-        ); // before continue, we assure that there is a vehicle with given ID
+    public ResponseEntity<String> deleteVehicleById(Long vehicleId, String token, ParkingService parkingService) {
+
+        if (!JwtUtil.isAuthorizedAdmin(token)) {
+            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
+        }
+
+        Vehicle vehicle = vehicleRepository.findVehicleById(vehicleId);
+        if (vehicle == null) {
+            return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
+        }
+        List<Request> unsolvedRequest = requestRepository.findUnsolvedRequestWithVehicle(vehicleId);
+        if (!unsolvedRequest.isEmpty()) {
+            return new ResponseEntity<>("Vehicle is busy", HttpStatus.CONFLICT);
+        }
+        Parking parking = vehicle.getCurrentParking();
+        if (parking != null) {
+            parkingService.removeVehicleFromParking(token, parking.getId(), vehicleId, this);
+        }
+        vehicleRepository.deleteById(vehicleId);
+        return new ResponseEntity<>("Successfully deleted", HttpStatus.OK);
         //if(!vehicle.isBusy()) {
             //Parking parking = vehicle.getCurrentParking();
             //if (parking != null) {
@@ -76,7 +194,12 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    public  List<Vehicle> willBeInDeparture(String departure, Date date, Integer startHour, String vehicleType){
+    public  ResponseEntity<List<Vehicle>> willBeInDeparture(String token, String departure, Date date, Integer startHour, String vehicleType){
+
+        if (!JwtUtil.isValidToken(token)) {
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
         List<Vehicle> allVehicle = vehicleRepository.findVehicleByType(vehicleType);
         List<Vehicle> result = new ArrayList<>();
 
@@ -120,19 +243,60 @@ public class VehicleServiceImpl implements VehicleService {
                 }
             }
         }
-        return result;
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @Override
-    public List<Vehicle> willBeInDepartureUpdate(String departure, Date date, Integer startHour,Long initialVehicleId, String vehicleType){
-        List<Vehicle> willBe = this.willBeInDeparture(departure, date, startHour, vehicleType);
+    public ResponseEntity<List<Vehicle>> willBeInDepartureUpdate(String token, String departure, Date date, Integer startHour,Long initialVehicleId, String vehicleType){
+        // System.out.println("Here " + token);
+        if (!JwtUtil.isValidToken(token)) {
+            // System.out.println(token);
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        List<Vehicle> willBe = this.willBeInDeparture(token, departure, date, startHour, vehicleType).getBody();
         Vehicle initialVehicle = vehicleRepository.findVehicleById(initialVehicleId);
         if (initialVehicle.getType().compareTo(vehicleType) == 0 && departure.compareTo(initialVehicle.getCurrentParking().getName()) == 0) {
             willBe.add(initialVehicle);
         }
-        return willBe;
+        return new ResponseEntity<>(willBe, HttpStatus.OK);
     }
 
+    private Map<String, Integer> getVehicleStatisticsFabricationYear(){
+        Map<String, Integer> results = new HashMap<>();
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        for (Vehicle vehicle : vehicles) {
+            int fabricationYear = vehicle.getFabricationYear();
+            String year = Integer.toString(fabricationYear);
+            results.put(year, results.getOrDefault(year, 0) + 1);
+        }
+        return results;
+    }
 
+    private Map<String, Integer> getVehicleStatisticsVehicleType(){
+        Map<String, Integer> results = new HashMap<>();
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        for (Vehicle vehicle : vehicles) {
+            String type = vehicle.getType();
+            results.put(type, results.getOrDefault(type, 0) + 1);
+        }
+        return results;
+    }
+
+    private Map<String, Integer> getVehicleStatisticsCurrentParking() {
+        Map<String, Integer> results = new HashMap<>();
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        for (Vehicle vehicle : vehicles) {
+            Parking currentParking = vehicle.getCurrentParking();
+            if (currentParking != null) {
+                String name = currentParking.getName();
+                results.put(name, results.getOrDefault(name, 0) + 1);
+            } else {
+                final String noParking = "No parking";
+                results.put(noParking, results.getOrDefault(noParking, 0) + 1);
+            }
+        }
+        return results;
+    }
 
 }

@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import '../../css/View.css';
 import {Link, useHistory} from "react-router-dom";
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../AppNavbarBeforeLogin";
 import {Button, Container} from "react-bootstrap";
+import AppFooter from "../AppFooter";
+import {jwtDecode} from "jwt-decode";
+import MyNavbar from "../MyNavbar";
 const UserView = ({ userId }) => {
+
+    const [error, setError] = useState(false);
+
     const [userData, setUserData] = useState({
         name: '',
         email: '',
         username: '',
         password: '',
         salt: '',
+        registrationDate: '',
         requests: '',
         rides: ''
     });
@@ -23,10 +30,30 @@ const UserView = ({ userId }) => {
     };
 
 
+    const [jwt, setJwt] = useState(localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
 
 
     useEffect(() => {
-        fetch(`/user/${userId}`)
+        if (jwt !== '' && jwt['isAdmin'] === '0' && jwt['uuid'] !== userId) {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+        if (jwt === '') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+    }, [jwt])
+
+
+    useEffect(() => {
+        fetch(`http://localhost:2810/user/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
             .then((response) => response.json())
             .then((data) => {
                 // Selectively update the state based on fetched data
@@ -37,6 +64,7 @@ const UserView = ({ userId }) => {
                     username: data.username,
                     password: data.password,
                     salt: data.salt,
+                    registrationDate: data.registrationDate,
                     requests: data.requests,
                     rides: data.rides
                 }));
@@ -46,12 +74,15 @@ const UserView = ({ userId }) => {
             });
     }, [userId]);
 
+    if (error) {
+        return <div> Error...</div>
+    }
 
     return (
-        <div>
-            <AppNavbar/>
+        <div style = {{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
+            <MyNavbar/>
             <Container className="mt-5 d-flex justify-content-center">
-                <div className="view-form">
+                <div className="view-form" style={{marginBottom: '7vh', borderColor: 'black'}}>
                     <h2 className="mb-4 text-center">User Profile</h2>
                     <div className="d-flex align-items-center justify-content-between">
                         <label className="font-weight-bold">Name:</label>
@@ -59,13 +90,18 @@ const UserView = ({ userId }) => {
                     </div>
                     <br/>
                     <div className="d-flex align-items-center justify-content-between">
-                        <label className="font-weight-bold">Email Address:</label>
+                        <label className="font-weight-bold">Email:</label>
                         <button>{userData.email}</button>
                     </div>
                     <br/>
                     <div className="d-flex align-items-center justify-content-between">
                         <label className="font-weight-bold">Username:</label>
                         <button>{userData.username}</button>
+                    </div>
+                    <br/>
+                    <div className="d-flex align-items-center justify-content-between">
+                        <label className="font-weight-bold">Registration Date:</label>
+                        <button>{userData.registrationDate}</button>
                     </div>
                     <br/>
                     <div className="d-flex align-items-center justify-content-between">
@@ -94,6 +130,7 @@ const UserView = ({ userId }) => {
                     )}
                 </div>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

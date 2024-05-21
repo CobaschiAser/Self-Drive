@@ -1,9 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import '../../css/EditForm.css';
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
+import AppFooter from "../AppFooter";
+import {jwtDecode} from "jwt-decode";
+import MyNavbar from "../MyNavbar";
 
 const EditVehicleForm = ({ vehicleId }) => {
+    const [jwt, setJwt] = useState(localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
+
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        if (jwt !== '' && jwt['isAdmin'] === '0') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+        if (jwt === '') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+    }, [jwt])
+
     const [vehicleData, setVehicleData] = useState({
         brand: '',
         model: '',
@@ -23,7 +43,12 @@ const EditVehicleForm = ({ vehicleId }) => {
     const [conflict, setConflict] = useState(false);
 
     useEffect(() => {
-        fetch(`/vehicle/${vehicleId}`)
+        fetch(`http://localhost:2810/vehicle/${vehicleId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
             .then((response) => response.json())
             .then((data) => {
                 // Selectively update the state based on fetched data
@@ -73,6 +98,7 @@ const EditVehicleForm = ({ vehicleId }) => {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
             },
             body: JSON.stringify(vehicleData),
         })
@@ -90,11 +116,17 @@ const EditVehicleForm = ({ vehicleId }) => {
             });
     };
 
+    if (error) {
+        return (
+            <div>Error..</div>
+        )
+    }
+
     return (
-        <div>
-            <AppNavbar/>
+        <div style={{minHeight:'100vh', display: 'flex', flexDirection: 'column'}}>
+            <MyNavbar/>
             <Container className="mt-5 d-flex justify-content-center">
-                <Form className="register-form">
+                <Form className="register-form" style={{borderColor:'black', marginBottom: '7vh'}}>
                     {emptyField && <div className="text-center"><Form.Text className="text-danger" > Please fill empty fields</Form.Text></div>}
                     <br/>
                     <h2 className="mb-b text-center">Edit Vehicle Form</h2>
@@ -129,7 +161,7 @@ const EditVehicleForm = ({ vehicleId }) => {
                     </Form.Group>
                     <br/>
                     <div className="text-center">
-                        <Button variant="primary" type="button" onClick={handleSubmit}>
+                        <Button variant="secondary" type="button" onClick={handleSubmit}>
                             Edit Vehicle
                         </Button>
                         <br/>
@@ -138,6 +170,7 @@ const EditVehicleForm = ({ vehicleId }) => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

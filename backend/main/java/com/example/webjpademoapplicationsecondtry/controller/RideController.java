@@ -1,6 +1,7 @@
 package com.example.webjpademoapplicationsecondtry.controller;
 
 import com.example.webjpademoapplicationsecondtry.entity.Parking;
+import com.example.webjpademoapplicationsecondtry.entity.Request;
 import com.example.webjpademoapplicationsecondtry.entity.Ride;
 import com.example.webjpademoapplicationsecondtry.service.RideService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +29,15 @@ public class RideController {
 
 
     @GetMapping("/{id}")
-    public Ride findRideById(@PathVariable ("id") Long id){
-        return rideService.findRideById(id);
+    public ResponseEntity<Ride> findRideById(@RequestHeader(name = "Authorization") String token, @PathVariable ("id") String id){
+        Long longId = Long.parseLong(id);
+        return rideService.findRideById(token, longId);
+    }
+
+    @PostMapping("/estimate-price")
+    public ResponseEntity<Double> estimatePrice(@RequestHeader(name = "Authorization") String token, @RequestBody Request request){
+        System.out.println("HERE");
+        return rideService.estimatePrice(token, request);
     }
 
 }

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import '../css/ResetPassword.css';
-import AppNavbar from "./AppNavbar";
 import {Button, Container, Form} from "react-bootstrap";
-import {getWindowFromNode} from "@testing-library/dom/dist/helpers";
+import AppFooter from "./AppFooter";
+import MyNavbar from "./MyNavbar";
+import {jwtDecode} from "jwt-decode";
 
 const SendResetPasswordCodeForm = () => {
+    const [currentJwt, setCurrentJwt] = useState( localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
+
     const [userData, setUserData] = useState({
         email: ''
     });
@@ -25,6 +28,10 @@ const SendResetPasswordCodeForm = () => {
         setUserData({ ...userData, [name]: value });
     };
 
+    if (currentJwt !== '') {
+        window.location.href = '/home';
+        return;
+    }
     const handleSendCode = async (e) => {
         e.preventDefault();
 
@@ -77,15 +84,15 @@ const SendResetPasswordCodeForm = () => {
     };
 
     return (
-        <div>
-            <AppNavbar/>
-            <Container className="mt-5 d-flex justify-content-center">
-                <Form className="register-form">
+        <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
+            <MyNavbar/>
+            <Container className="mt-5 d-flex justify-content-center" style={{marginBottom: '7vh'}}>
+                <Form className="register-form" style={{borderColor: 'black'}}>
                     {emptyField && <div className="text-center"><Form.Text className="text-danger" > Please fill empty fields</Form.Text> <br/></div>}
                     <h2 className="mb-b text-center">Verification Code Form</h2>
                     <Form.Group controlId="formBasicName">
                         <Form.Label>Email</Form.Label>
-                        <Form.Control
+                        <Form.Control className="form-control"
                             type="email"
                             name="email"
                             placeholder="Enter email to send code"
@@ -96,10 +103,10 @@ const SendResetPasswordCodeForm = () => {
 
                     <div className="text-center">
                         <br/>
-                        <Form.Text className="">Already have an account? <a href="/login">Login now</a></Form.Text>
+                        <Form.Text className="">Already have an account? <a href="/login" style={{color: 'darkslategray'}}>Login now</a></Form.Text>
                         <br/>
                         <br/>
-                        <Button variant="primary" type="button" onClick={handleSendCode}>
+                        <Button variant="secondary" type="button" onClick={handleSendCode} className="submit-button">
                             Send Code
                         </Button>
                         <br/>
@@ -109,6 +116,7 @@ const SendResetPasswordCodeForm = () => {
                     </div>
                 </Form>
             </Container>
+            <AppFooter/>
         </div>
     );
 };

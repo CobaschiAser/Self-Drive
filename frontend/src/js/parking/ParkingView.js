@@ -1,13 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import '../../css/View.css';
-import {Link} from "react-router-dom";
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../AppNavbarBeforeLogin";
 import {Button, Container, Form} from "react-bootstrap";
 import { useHistory } from "react-router-dom";
-import {GoogleMap, InfoWindow, Marker, useJsApiLoader} from "@react-google-maps/api";
-import AdminSidebar from "../AdminSidebar";
+import {GoogleMap, InfoWindow, Marker, MarkerF, useJsApiLoader} from "@react-google-maps/api";
+import AppFooter from "../AppFooter";
+import MyNavbar from "../MyNavbar";
+import {jwtDecode} from "jwt-decode";
+import {CENTER, GOOGLE_MAP_KEY} from "../../constants/constants";
 const ParkingView = ({ parkingId }) => {
+
+    const [jwt, setJwt] = useState(localStorage.getItem('jwt') ? jwtDecode(localStorage.getItem('jwt')) : '');
+
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        if (jwt === '') {
+            setError(true);
+            window.location.href = '/error';
+        }
+
+    }, [jwt])
+
     const [parkings, setParkings] = useState([]);
+    const [vehicleCanBeAdded, setVehicleCanBeAdded] = useState([]);
+    const [vehicleCanBeRemoved, setVehicleCanBeRemoved] = useState([]);
+    const [vehicleAfterRequest, setVehicleAfterRequest] = useState([]);
     const [parkingData, setParkingData] = useState({
         name: '',
         x: '',
@@ -17,22 +35,21 @@ const ParkingView = ({ parkingId }) => {
         vehicles: ''
     });
     const [selectedParking, setSelectedParking] = useState(null);
-    const center = { lat: 47.164775, lng: 27.580579 };
+    const center = CENTER;
     const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: "",
+        googleMapsApiKey: GOOGLE_MAP_KEY,
     });
 
-    const customMarkerIcon = {
-        path: "M256,0C156.32,0,76.8,79.52,76.8,179.2C76.8,256,256,512,256,512s179.2-256,179.2-332.8C435.2,79.52,355.68,0,256,0z M256,243.2c-46.08,0-83.2-37.12-83.2-83.2s37.12-83.2,83.2-83.2s83.2,37.12,83.2,83.2S302.08,243.2,256,243.2z",
-        fillColor: "blue",
-        fillOpacity: 1,
-        strokeWeight: 0,
-        scale: 0.1
-    };
 
     useEffect(() => {
         // Fetch parking data from API
-        fetch(`http://localhost:2810/parking`)
+        fetch(`/parking`,{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 setParkings(data);
@@ -40,13 +57,79 @@ const ParkingView = ({ parkingId }) => {
             .catch(error => console.error('Error fetching parking data:', error));
     }, []);
 
-    const history = useHistory();
+    useEffect(() => {
+        // Fetch parking data from API
+        fetch(`/vehicle/can-be-added`,{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                setVehicleCanBeAdded(data);
+                console.log(vehicleCanBeAdded);
+            })
+            .catch(error => console.error('Error fetching parking data:', error));
+    }, []);
+
+    useEffect(() => {
+        // Fetch parking data from API
+        fetch(`/vehicle/can-be-removed?parkingId=${parkingId}`,{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                setVehicleCanBeRemoved(data);
+            })
+            .catch(error => console.error('Error fetching parking data:', error));
+    }, []);
+
+    useEffect(() => {
+        // Fetch parking data from API
+        fetch(`/vehicle/all-after-request?parkingId=${parkingId}`,{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                setVehicleAfterRequest(data);
+                console.log(vehicleAfterRequest);
+            })
+            .catch(error => console.error('Error fetching parking data:', error));
+    }, [parkingId]);
+
+    const handleViewParkingVehicles = () => {
+        window.location.href = `/parking/${parkingId}/vehicles`;
+    }
     const handleViewVehicles = (e) => {
         window.location.href = `/parking/${parkingId}/vehicles`;
     };
 
+    const handleAddVehicle = (e) => {
+        window.location.href = `/parking/${parkingId}/add-vehicles`;
+    };
+
+    const handleRemoveVehicle = (e) => {
+        window.location.href = `/parking/${parkingId}/remove-vehicles`;
+    };
+
     useEffect(() => {
-        fetch(`/parking/byId/${parkingId}`)
+        fetch(`/parking/byId/${parkingId}`,{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        })
             .then((response) => response.json())
             .then((data) => {
                 // Selectively update the state based on fetched data
@@ -69,13 +152,23 @@ const ParkingView = ({ parkingId }) => {
         return <div>Loading...</div>;
     }
 
+    if (error) {
+        return (
+            <div>Error..</div>
+        )
+    }
+
+    console.log("vehicleCanBeAdded:", vehicleCanBeAdded);
+    console.log("vehicleAfterRequest:", vehicleAfterRequest);
+    console.log("parkingData.maxCapacity:", parkingData.maxCapacity);
+
     return (
-        <div>
-            <AppNavbar/>
-            <div style={{ display: 'flex', height: '90vh' }}>
-                <div style={{ flex: 2, border: '1px solid black', padding: '10px'}}>
+        <div style={{display:"flex", flexDirection: "column", minHeight:"100vh"}}>
+            <MyNavbar/>
+            <div style={{ display: 'flex', marginBottom: '7vh'}}>
+                <div style={{ flex: 2, padding: '10px'}}>
                     <Container className="mt-5 d-flex justify-content-center border-1">
-                        <div className="view-form">
+                        <div className="view-form" style={{borderColor: 'black'}}>
                             <h2 className="mb-4 text-center">View Parking: {parkingData.name}</h2>
                             <div className="d-flex align-items-center justify-content-between">
                                 <label className="font-weight-bold">Name:</label>
@@ -102,24 +195,32 @@ const ParkingView = ({ parkingId }) => {
                                 <button> {parkingData.currentCapacity} </button>
                             </div>
                             <br/>
-                            {parkingData.vehicles.length > 0 &&
-                                <div className="d-flex justify-content-center">
-                                    <Button variant="primary" type="button" className="text-center" onClick={handleViewVehicles}>
+                            <div className="d-flex justify-content-center">
+                                {parkingData.vehicles.length > 0 &&
+                                    <Button variant="secondary" type="button" className="text-center" onClick={handleViewVehicles} style={{borderColor: 'black', borderWidth: '2px'}}>
                                         View Vehicles
                                     </Button>
+                                }
+                                    {   vehicleCanBeAdded && vehicleCanBeAdded.length > 0  && vehicleAfterRequest.length < parkingData.maxCapacity &&
+                                        <Button variant="secondary" type="button" className="text-center" onClick={handleAddVehicle} style={{borderColor: 'black', borderWidth: '2px'}}>
+                                            Add Vehicle
+                                        </Button>
+                                    }
+                                    {   vehicleCanBeRemoved && vehicleCanBeRemoved.length > 0 &&
+                                        <Button variant="secondary" type="button" className="text-center" onClick={handleRemoveVehicle} style={{borderColor: 'black', borderWidth: '2px'}}>
+                                            Remove Vehicle
+                                        </Button>
+                                    }
                                 </div>
-                            }
                         </div>
                     </Container>
                 </div>
-                <div style={{ flex: 3, position: 'relative', border: '1px solid black'}}>
+                <div style={{ flex: 3, position: 'relative'}}>
                     <div style={{ position: 'absolute', top: '10px', bottom: '10px', left: '10px', right: '10px', border: '1px solid black', overflow: 'hidden'}}>
-
                     <GoogleMap center={center} zoom={12} mapContainerStyle={{ width: '100%', height: '100%', border: '3px solid black', overflow: 'hidden'}}>
-                {parkings.map(parking => (
-                    <Marker key={parking.id} position={{ lat: parking.x, lng: parking.y }} onClick={() => setSelectedParking(parking)}/>
-                ))}
-                {selectedParking && (
+                    <Marker key={parkingData.id} position={{ lat: parkingData.x, lng: parkingData.y }} onClick={() => setSelectedParking(parkingData)} />
+
+                        {selectedParking && (
                     <InfoWindow
                         position={{ lat: selectedParking.x, lng: selectedParking.y }}
                         onCloseClick={() => setSelectedParking(null)}
@@ -128,6 +229,9 @@ const ParkingView = ({ parkingId }) => {
                             <p>{selectedParking.name}</p>
                             <p>Current capacity: {selectedParking.currentCapacity}</p>
                             <p>Max capacity: {selectedParking.maxCapacity}</p>
+                            {selectedParking.vehicles.length !== 0 && <Button variant="secondary" type="button" style={{borderColor: 'black', borderWidth: '2px'}} onClick={() => handleViewParkingVehicles()}>
+                                View Vehicles
+                            </Button>}
                         </div>
                     </InfoWindow>
                 )}
@@ -136,6 +240,7 @@ const ParkingView = ({ parkingId }) => {
                     </div>
                 </div>
         </div>
+            <AppFooter/>
         </div>
     );
 };
